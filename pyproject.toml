@@ -1,0 +1,17 @@
+[project]
+name = "ainfo"
+version = "0.1.0"
+description = "Add your description here"
+readme = "README.md"
+authors = [
+    { name = "Codex", email = "codex@openai.com" }
+]
+requires-python = ">=3.12"
+dependencies = ["httpx", "beautifulsoup4", "selectolax", "pydantic", "typer"]
+
+[project.scripts]
+ainfo = "ainfo:main"
+
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
