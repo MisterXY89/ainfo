@@ -6,9 +6,13 @@ import hashlib
 from pathlib import Path
 from urllib.parse import urlparse
 
-import aiofiles
 import httpx
 from urllib.robotparser import RobotFileParser
+
+try:  # pragma: no cover - optional dependency
+    import aiofiles  # type: ignore
+except Exception:  # pragma: no cover
+    aiofiles = None  # type: ignore[assignment]
 
 
 class AsyncFetcher:
@@ -90,16 +94,21 @@ class AsyncFetcher:
             filename = hashlib.sha256(url.encode()).hexdigest()
             cache_path = self.cache_dir / filename
             if cache_path.exists():
-                async with aiofiles.open(cache_path, "r") as f:
-                    return await f.read()
+                if aiofiles is not None:
+                    async with aiofiles.open(cache_path, "r") as f:
+                        return await f.read()
+                return cache_path.read_text()
 
         resp = await self._client.get(url)
         resp.raise_for_status()
         text = resp.text
 
         if cache_path is not None:
-            async with aiofiles.open(cache_path, "w") as f:
-                await f.write(text)
+            if aiofiles is not None:
+                async with aiofiles.open(cache_path, "w") as f:
+                    await f.write(text)
+            else:
+                cache_path.write_text(text)
 
         return text
 

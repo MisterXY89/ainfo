@@ -6,7 +6,7 @@ from typing import Iterable
 
 from bs4 import BeautifulSoup, Tag
 
-from .models import Document, PageNode
+from ..models import Document, PageNode
 
 # Tags and attribute keywords typically associated with navigation or ads.
 _NAV_TAGS = {
