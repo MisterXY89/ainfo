@@ -14,8 +14,20 @@ async def _fetch(url: str, render_js: bool) -> str:
         return await fetcher.fetch(url)
 
 
-def fetch_data(url: str, render_js: bool = False) -> str:
-    """Fetch raw HTML from ``url`` synchronously.
+async def async_fetch_data(url: str, render_js: bool = False) -> str:
+    """Fetch raw HTML from ``url`` asynchronously."""
+
+    return await _fetch(url, render_js)
+
+
+def fetch_data(url: str, render_js: bool = False) -> str | asyncio.Task[str]:
+    """Fetch raw HTML from ``url``.
+
+    The function adapts to the surrounding asynchronous environment. If no
+    event loop is running, the coroutine is executed immediately and the HTML
+    is returned. When called while an event loop is already running, the
+    coroutine is scheduled on that loop and an :class:`asyncio.Task` is
+    returned. For fully asynchronous workflows use :func:`async_fetch_data`.
 
     Parameters
     ----------
@@ -27,12 +39,17 @@ def fetch_data(url: str, render_js: bool = False) -> str:
 
     Returns
     -------
-    str
-        The HTML body of the page.
+    str | asyncio.Task[str]
+        The HTML body of the page or a task that resolves to it.
     """
 
-    return asyncio.run(_fetch(url, render_js))
+    try:
+        loop = asyncio.get_running_loop()
+    except RuntimeError:
+        return asyncio.run(_fetch(url, render_js))
+    else:
+        return loop.create_task(_fetch(url, render_js))
 
 
-__all__ = ["fetch_data", "AsyncFetcher"]
+__all__ = ["fetch_data", "async_fetch_data", "AsyncFetcher"]
 

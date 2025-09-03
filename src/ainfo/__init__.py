@@ -9,7 +9,7 @@ from collections.abc import Mapping
 
 from .crawler import crawl as crawl_urls
 from .extraction import extract_information, extract_text
-from .fetching import fetch_data
+from .fetching import fetch_data, async_fetch_data
 from .llm_service import LLMService
 from .output import output_results, to_json
 from .parsing import parse_data
@@ -107,4 +107,11 @@ def main() -> None:
     app()
 
 
-__all__ = ["main", "run", "crawl", "app"]
+__all__ = [
+    "main",
+    "run",
+    "crawl",
+    "app",
+    "fetch_data",
+    "async_fetch_data",
+]
