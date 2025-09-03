@@ -18,6 +18,22 @@ class LLMService:
         headers = {"Authorization": f"Bearer {self.config.api_key}"}
         self._client = httpx.Client(base_url=self.config.base_url, headers=headers)
 
+    # ------------------------------------------------------------------
+    # lifecycle management
+    # ------------------------------------------------------------------
+    def close(self) -> None:
+        """Close the underlying :class:`httpx.Client` instance."""
+
+        self._client.close()
+
+    def __enter__(self) -> "LLMService":
+        return self
+
+    def __exit__(self, exc_type, exc, tb) -> bool:
+        self.close()
+        # Do not suppress exceptions
+        return False
+
     def _chat(self, messages: list[dict[str, str]]) -> str:
         payload = {"model": self.config.model, "messages": messages}
         resp = self._client.post("/chat/completions", json=payload, timeout=60)
@@ -38,4 +54,43 @@ class LLMService:
         return self.extract(text, instruction)
 
 
-__all__ = ["LLMService"]
+class AsyncLLMService:
+    """Asynchronous variant of :class:`LLMService`."""
+
+    def __init__(self, config: LLMConfig | None = None) -> None:
+        self.config = config or LLMConfig()
+        if not self.config.api_key:
+            msg = "OPENROUTER_API_KEY is required to use the LLM service"
+            raise RuntimeError(msg)
+        headers = {"Authorization": f"Bearer {self.config.api_key}"}
+        self._client = httpx.AsyncClient(
+            base_url=self.config.base_url, headers=headers
+        )
+
+    async def _chat(self, messages: list[dict[str, str]]) -> str:
+        payload = {"model": self.config.model, "messages": messages}
+        resp = await self._client.post("/chat/completions", json=payload, timeout=60)
+        resp.raise_for_status()
+        data = resp.json()
+        return data["choices"][0]["message"]["content"].strip()
+
+    async def extract(self, text: str, instruction: str) -> str:
+        prompt = f"{instruction}\n\n{text}"
+        return await self._chat([{"role": "user", "content": prompt}])
+
+    async def summarize(self, text: str) -> str:
+        instruction = "Summarise the following content:"
+        return await self.extract(text, instruction)
+
+    async def aclose(self) -> None:
+        await self._client.aclose()
+
+    async def __aenter__(self) -> "AsyncLLMService":
+        return self
+
+    async def __aexit__(self, exc_type, exc, tb) -> bool:
+        await self.aclose()
+        return False
+
+
+__all__ = ["LLMService", "AsyncLLMService"]

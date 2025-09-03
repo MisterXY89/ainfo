@@ -32,14 +32,22 @@ def run(
 
     raw = fetch_data(url, render_js=render_js)
     document = parse_data(raw, url=url)
-    llm = LLMService() if use_llm or summarize else None
     method = "llm" if use_llm else "regex"
-    results = extract_information(document, method=method, llm=llm)
-    output_results(results)
-    if summarize and llm is not None:
-        text = extract_text(document)
-        typer.echo("summary:")
-        typer.echo(llm.summarize(text))
+
+    if use_llm or summarize:
+        with LLMService() as llm:
+            llm_for_extraction = llm if use_llm else None
+            results = extract_information(
+                document, method=method, llm=llm_for_extraction
+            )
+            output_results(results)
+            if summarize:
+                text = extract_text(document)
+                typer.echo("summary:")
+                typer.echo(llm.summarize(text))
+    else:
+        results = extract_information(document, method=method, llm=None)
+        output_results(results)
 
 
 @app.command()
@@ -55,16 +63,25 @@ def crawl(
 ) -> None:
     """Crawl ``url`` up to ``depth`` levels and extract contact info."""
 
-    llm = LLMService() if use_llm else None
     method = "llm" if use_llm else "regex"
     urls = asyncio.run(crawl_urls(url, depth, render_js=render_js))
-    for link in urls:
-        raw = fetch_data(link, render_js=render_js)
-        document = parse_data(raw, url=link)
-        results = extract_information(document, method=method, llm=llm)
-        typer.echo(f"Results for {link}:")
-        output_results(results)
-        typer.echo()
+    if use_llm:
+        with LLMService() as llm:
+            for link in urls:
+                raw = fetch_data(link, render_js=render_js)
+                document = parse_data(raw, url=link)
+                results = extract_information(document, method=method, llm=llm)
+                typer.echo(f"Results for {link}:")
+                output_results(results)
+                typer.echo()
+    else:
+        for link in urls:
+            raw = fetch_data(link, render_js=render_js)
+            document = parse_data(raw, url=link)
+            results = extract_information(document, method=method, llm=None)
+            typer.echo(f"Results for {link}:")
+            output_results(results)
+            typer.echo()
 
 
 def main() -> None:
