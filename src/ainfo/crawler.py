@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import asyncio
+import logging
 from collections import defaultdict
 from dataclasses import dataclass
 from typing import Mapping, AsyncIterator
@@ -11,6 +12,8 @@ from urllib.parse import urljoin, urlparse
 from bs4 import BeautifulSoup
 
 from .fetching import AsyncFetcher
+
+logger = logging.getLogger(__name__)
 
 
 @dataclass
@@ -60,6 +63,7 @@ async def crawl(
         If ``True``, use a headless browser to render pages before parsing them.
     """
 
+    logger.info("Starting crawl at %s up to depth %d", start_url, max_depth)
     rules = dict(rules or {})
     visited: set[str] = set()
     domain_counts: dict[str, int] = defaultdict(int)
@@ -68,43 +72,45 @@ async def crawl(
     await queue.put((start_url, 0))
 
     async with AsyncFetcher(render_js=render_js) as fetcher:
-        while not queue.empty():
-            url, depth = await queue.get()
-            if depth > max_depth or url in visited:
-                continue
-
-            visited.add(url)
-            parsed = urlparse(url)
-            domain = parsed.netloc
-            rule = rules.get(domain, DomainRule())
-
-            if rule.max_pages is not None and domain_counts[domain] >= rule.max_pages:
-                continue
-            domain_counts[domain] += 1
-
-            try:
-                html = await fetcher.fetch(url)
-            except Exception:
-                continue
-
-            # Provide the fetched HTML to the caller before parsing links so
-            # consumers can process the page without re-fetching it.
-            yield url, html
-
-            if depth == max_depth:
-                continue
-
-            soup = BeautifulSoup(html, "html.parser")
-            for tag in soup.find_all("a", href=True):
-                href = tag.get("href")
-                if not href or href.startswith("#"):
+            while not queue.empty():
+                url, depth = await queue.get()
+                if depth > max_depth or url in visited:
                     continue
-                link = urljoin(url, href)
-                if link in visited:
+
+                visited.add(url)
+                parsed = urlparse(url)
+                domain = parsed.netloc
+                rule = rules.get(domain, DomainRule())
+
+                if rule.max_pages is not None and domain_counts[domain] >= rule.max_pages:
                     continue
-                link_domain = urlparse(link).netloc
-                if not rule.allow_external and link_domain != domain:
+                domain_counts[domain] += 1
+
+                try:
+                    logger.info("Fetching %s (depth %d)", url, depth)
+                    html = await fetcher.fetch(url)
+                except Exception:
+                    logger.debug("Failed to fetch %s", url)
                     continue
-                await queue.put((link, depth + 1))
+
+                # Provide the fetched HTML to the caller before parsing links so
+                # consumers can process the page without re-fetching it.
+                yield url, html
+
+                if depth == max_depth:
+                    continue
+
+                soup = BeautifulSoup(html, "html.parser")
+                for tag in soup.find_all("a", href=True):
+                    href = tag.get("href")
+                    if not href or href.startswith("#"):
+                        continue
+                    link = urljoin(url, href)
+                    if link in visited:
+                        continue
+                    link_domain = urlparse(link).netloc
+                    if not rule.allow_external and link_domain != domain:
+                        continue
+                    await queue.put((link, depth + 1))
 
     # When the queue is exhausted the generator simply stops.

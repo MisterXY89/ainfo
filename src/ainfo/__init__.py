@@ -4,8 +4,10 @@ from __future__ import annotations
 
 import asyncio
 import json
-import typer
+import logging
 from pathlib import Path
+
+import typer
 
 from .chunking import chunk_text, stream_chunks
 from .crawler import crawl as crawl_urls
@@ -18,6 +20,21 @@ from .schemas import ContactDetails
 from .extractors import AVAILABLE_EXTRACTORS
 
 app = typer.Typer()
+logger = logging.getLogger(__name__)
+
+
+@app.callback()
+def cli(
+    verbose: bool = typer.Option(
+        False, "--verbose", "-v", help="Enable verbose logging"
+    )
+) -> None:
+    """Configure global CLI options such as logging verbosity."""
+
+    level = logging.DEBUG if verbose else logging.WARNING
+    logging.basicConfig(
+        level=level, format="%(levelname)s: %(message)s", force=True
+    )
 
 
 @app.command()
