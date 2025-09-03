@@ -28,11 +28,7 @@ def test_cli_crawl_fetches_each_url_once(monkeypatch):
 
     # Simplify downstream processing to keep the test focused on fetch counts
     monkeypatch.setattr(ainfo, "parse_data", lambda raw, url=None: raw)
-    monkeypatch.setattr(
-        ainfo,
-        "extract_information",
-        lambda doc, method="regex", llm=None: {},
-    )
+    monkeypatch.setattr(ainfo, "extract_text", lambda doc, joiner=" ", as_list=False: "")
     monkeypatch.setattr(ainfo, "output_results", lambda results: None)
     monkeypatch.setattr(ainfo, "to_json", lambda results, path: None)
 

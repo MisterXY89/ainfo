@@ -10,12 +10,16 @@ def test_cli_run_json_output(monkeypatch):
     )
     monkeypatch.setattr(ainfo, "fetch_data", lambda url, render_js=False: html)
     runner = CliRunner()
-    result = runner.invoke(ainfo.app, ["run", "https://example.com", "--json"])
+    result = runner.invoke(
+        ainfo.app,
+        ["run", "https://example.com", "--json", "--extract", "contacts"],
+    )
     assert result.exit_code == 0
     data = json.loads(result.stdout.strip())
-    assert data == {
+    assert data["contacts"] == {
         "emails": ["test@example.com"],
         "phone_numbers": [],
         "addresses": [],
         "social_media": [],
     }
+    assert "text" in data

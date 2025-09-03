@@ -24,12 +24,24 @@ pip install -e .
 ainfo run https://example.com
 ```
 
-The command fetches the page, parses its content and prints any emails,
-phone numbers, street addresses or social media profiles that were detected.
+The command fetches the page, parses its content and prints the page text.
+Specify one or more built-in extractors with ``--extract`` to pull extra
+information. For example, to collect contact details and hyperlinks:
+
+```bash
+ainfo run https://example.com --extract contacts --extract links
+```
+
+Available extractors include:
+
+- ``contacts`` – emails, phone numbers, addresses and social profiles
+- ``links`` – all hyperlinks on the page
+- ``headings`` – text of headings (h1–h6)
+
 Use ``--json`` to emit machine-readable JSON instead of the default
-human-friendly format. The JSON conforms to the
-``ainfo.schemas.ContactDetails`` Pydantic model so consumers can rely on a
-stable schema. Retrieve the JSON schema with ``ainfo.output.json_schema``.
+human-friendly format. The JSON keys mirror the selected extractors, with
+``text`` always included. Retrieve the JSON schema for contact details with
+``ainfo.output.json_schema``.
 
 For use within an existing asyncio application, the package exposes an
 ``async_fetch_data`` coroutine:
@@ -61,11 +73,11 @@ headless browser:
 ainfo run https://example.com --render-js
 ```
 
-To crawl multiple pages starting from a URL and extract contact details from
-each one:
+To crawl multiple pages starting from a URL and optionally run extractors
+on each page:
 
 ```bash
-ainfo crawl https://example.com --depth 2
+ainfo crawl https://example.com --depth 2 --extract contacts
 ```
 
 The crawler visits pages breadth-first up to the specified depth and prints
@@ -85,13 +97,18 @@ Most components can also be used directly from Python. Fetch and parse a page,
 then run the extractors yourself:
 
 ```python
+from ainfo.extractors import AVAILABLE_EXTRACTORS
+
 from ainfo import fetch_data, parse_data, extract_information, extract_custom
 
 html = fetch_data("https://example.com")
 doc = parse_data(html, url="https://example.com")
 
-# Contact details as a pydantic model
-contacts = extract_information(doc)
+# Contact details via built-in extractor
+contacts = AVAILABLE_EXTRACTORS["contacts"](doc)
+
+# All links
+links = AVAILABLE_EXTRACTORS["links"](doc)
 
 # Any additional data via regular expressions
 extra = extract_custom(doc, {"prices": r"\$\d+(?:\.\d{2})?"})
