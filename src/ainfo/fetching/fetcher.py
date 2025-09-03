@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import hashlib
+import logging
 from pathlib import Path
 from urllib.parse import urlparse
 
@@ -18,6 +19,9 @@ try:  # pragma: no cover - optional dependency
     import aiofiles  # type: ignore
 except Exception:  # pragma: no cover
     aiofiles = None  # type: ignore[assignment]
+
+
+logger = logging.getLogger(__name__)
 
 
 class AsyncFetcher:
@@ -89,6 +93,7 @@ class AsyncFetcher:
 
     async def _allowed(self, url: str) -> bool:
         """Check whether a URL is allowed by ``robots.txt`` rules."""
+        logger.debug("Checking robots.txt for %s", url)
         parsed = urlparse(url)
         base = f"{parsed.scheme}://{parsed.netloc}"
         parser = self._robots.get(base)
@@ -117,8 +122,10 @@ class AsyncFetcher:
         str
             The body of the HTTP response.
         """
+        logger.info("Fetching %s", url)
         if not await self._allowed(url):
             msg = f"Fetching disallowed by robots.txt: {url}"
+            logger.warning(msg)
             raise PermissionError(msg)
 
         cache_path: Path | None = None
@@ -127,6 +134,7 @@ class AsyncFetcher:
             filename = hashlib.sha256(url.encode()).hexdigest()
             cache_path = self.cache_dir / filename
             if cache_path.exists():
+                logger.debug("Cache hit for %s", url)
                 if aiofiles is not None:
                     async with aiofiles.open(cache_path, "r") as f:
                         return await f.read()
@@ -134,6 +142,7 @@ class AsyncFetcher:
 
         if self.render_js:
             assert self._context is not None  # for mypy
+            logger.debug("Rendering page with JavaScript: %s", url)
             page = await self._context.new_page()
             try:
                 await page.goto(url, timeout=int(self.timeout * 1000))
@@ -153,5 +162,6 @@ class AsyncFetcher:
             else:
                 cache_path.write_text(text)
 
+        logger.info("Fetched %d bytes from %s", len(text), url)
         return text
 

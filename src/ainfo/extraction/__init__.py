@@ -4,6 +4,7 @@ from __future__ import annotations
 
 from collections.abc import Iterable
 import json
+import logging
 import re
 
 from ..models import Document, PageNode
@@ -15,6 +16,8 @@ from ..extractors.contact import (
 from ..extractors.social import extract_social_profiles
 from ..schemas import ContactDetails
 from ..llm_service import LLMService
+
+logger = logging.getLogger(__name__)
 
 
 def _gather_content_text(nodes: Iterable[PageNode]) -> list[str]:
@@ -46,6 +49,7 @@ def extract_text(
         string.
     """
 
+    logger.info("Extracting text from document")
     parts = [re.sub(r"\s+", " ", p).strip() for p in _gather_content_text(doc.nodes)]
     if as_list:
         return [p for p in parts if p]
@@ -73,6 +77,7 @@ def extract_information(
         Instance of :class:`LLMService` required when ``method`` is ``"llm"``.
     """
 
+    logger.info("Extracting contact information using %s", method)
     text = extract_text(doc)
     if method == "llm":
         if llm is None:
@@ -83,7 +88,7 @@ def extract_information(
             "social media profiles from the following text. Respond in JSON "
             "with keys 'emails', 'phone_numbers', 'addresses' and "
             "'social_media'."
-        )
+          )
         response = llm.extract(text, instruction, model=model)
         try:
             data = json.loads(response)
@@ -140,6 +145,7 @@ def extract_custom(
         A mapping of field names to lists of extracted strings.
     """
 
+    logger.info("Extracting custom information")
     text = extract_text(doc)
     if llm is not None:
         instruction = prompt or "Extract the requested information as JSON."

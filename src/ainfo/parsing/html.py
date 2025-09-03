@@ -3,10 +3,13 @@
 from __future__ import annotations
 
 from typing import Iterable
+import logging
 
 from bs4 import BeautifulSoup, Tag
 
 from ..models import Document, PageNode
+
+logger = logging.getLogger(__name__)
 
 # Tags and attribute keywords typically associated with navigation or ads.
 _NAV_TAGS = {
@@ -95,8 +98,10 @@ def parse_html(html: str, url: str | None = None) -> Document:
     Document
         Structured representation of the parsed document.
     """
+    logger.info("Parsing HTML from %s", url or "<string>")
     soup = BeautifulSoup(html, "html.parser")
     title = soup.title.string.strip() if soup.title and soup.title.string else None
     body = soup.body or soup
     nodes = _build_tree(body.find_all(recursive=False))
+    logger.debug("Parsed %d top-level nodes", len(nodes))
     return Document(title=title, url=url, nodes=nodes)
