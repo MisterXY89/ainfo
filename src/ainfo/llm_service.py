@@ -34,24 +34,35 @@ class LLMService:
         # Do not suppress exceptions
         return False
 
-    def _chat(self, messages: list[dict[str, str]]) -> str:
-        payload = {"model": self.config.model, "messages": messages}
+    def _chat(self, messages: list[dict[str, str]], model: str | None = None) -> str:
+        payload = {"model": model or self.config.model, "messages": messages}
         resp = self._client.post("/chat/completions", json=payload, timeout=60)
         resp.raise_for_status()
         data = resp.json()
         return data["choices"][0]["message"]["content"].strip()
 
-    def extract(self, text: str, instruction: str) -> str:
-        """Return the model's response to ``instruction`` applied to ``text``."""
+    def extract(self, text: str, instruction: str, model: str | None = None) -> str:
+        """Return the model's response to ``instruction`` applied to ``text``.
+
+        Parameters
+        ----------
+        text:
+            The content to analyse.
+        instruction:
+            The instruction or prompt supplied to the model.
+        model:
+            Optional identifier of the model to use. Defaults to the model
+            configured on the service instance.
+        """
 
         prompt = f"{instruction}\n\n{text}"
-        return self._chat([{"role": "user", "content": prompt}])
+        return self._chat([{"role": "user", "content": prompt}], model=model)
 
-    def summarize(self, text: str) -> str:
+    def summarize(self, text: str, model: str | None = None) -> str:
         """Return a brief summary of ``text``."""
 
         instruction = "Summarise the following content:"
-        return self.extract(text, instruction)
+        return self.extract(text, instruction, model=model)
 
 
 class AsyncLLMService:
@@ -67,20 +78,22 @@ class AsyncLLMService:
             base_url=self.config.base_url, headers=headers
         )
 
-    async def _chat(self, messages: list[dict[str, str]]) -> str:
-        payload = {"model": self.config.model, "messages": messages}
+    async def _chat(self, messages: list[dict[str, str]], model: str | None = None) -> str:
+        payload = {"model": model or self.config.model, "messages": messages}
         resp = await self._client.post("/chat/completions", json=payload, timeout=60)
         resp.raise_for_status()
         data = resp.json()
         return data["choices"][0]["message"]["content"].strip()
 
-    async def extract(self, text: str, instruction: str) -> str:
+    async def extract(
+        self, text: str, instruction: str, model: str | None = None
+    ) -> str:
         prompt = f"{instruction}\n\n{text}"
-        return await self._chat([{"role": "user", "content": prompt}])
+        return await self._chat([{"role": "user", "content": prompt}], model=model)
 
-    async def summarize(self, text: str) -> str:
+    async def summarize(self, text: str, model: str | None = None) -> str:
         instruction = "Summarise the following content:"
-        return await self.extract(text, instruction)
+        return await self.extract(text, instruction, model=model)
 
     async def aclose(self) -> None:
         await self._client.aclose()
