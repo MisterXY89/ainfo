@@ -25,6 +25,20 @@ ainfo run https://example.com
 The command fetches the page, parses its content and prints any emails,
 phone numbers or addresses that were detected.
 
+For use within an existing asyncio application, the package exposes an
+``async_fetch_data`` coroutine:
+
+```python
+import asyncio
+from ainfo import async_fetch_data
+
+async def main():
+    html = await async_fetch_data("https://example.com")
+    print(html[:60])
+
+asyncio.run(main())
+```
+
 To delegate information extraction or summarisation to an LLM, provide an
 OpenRouter API key via the ``OPENROUTER_API_KEY`` environment variable and pass
 ``--use-llm`` or ``--summarize``:
