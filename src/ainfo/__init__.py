@@ -76,28 +76,22 @@ def crawl(
     """Crawl ``url`` up to ``depth`` levels and extract contact info."""
 
     method = "llm" if use_llm else "regex"
-    urls = asyncio.run(crawl_urls(url, depth, render_js=render_js))
     aggregated_results: dict[str, Mapping[str, list[str]]] = {}
 
-    if use_llm:
-        with LLMService() as llm:
-            for link in urls:
-                raw = fetch_data(link, render_js=render_js)
-                document = parse_data(raw, url=link)
-                results = extract_information(document, method=method, llm=llm)
-                aggregated_results[link] = results
-                typer.echo(f"Results for {link}:")
-                output_results(results)
-                typer.echo()
-    else:
-        for link in urls:
-            raw = fetch_data(link, render_js=render_js)
+    async def _crawl(llm: LLMService | None = None) -> None:
+        async for link, raw in crawl_urls(url, depth, render_js=render_js):
             document = parse_data(raw, url=link)
-            results = extract_information(document, method=method, llm=None)
+            results = extract_information(document, method=method, llm=llm)
             aggregated_results[link] = results
             typer.echo(f"Results for {link}:")
             output_results(results)
             typer.echo()
+
+    if use_llm:
+        with LLMService() as llm:
+            asyncio.run(_crawl(llm))
+    else:
+        asyncio.run(_crawl())
 
     if output is not None:
         to_json(aggregated_results, path=output)
