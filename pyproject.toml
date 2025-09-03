@@ -7,7 +7,15 @@ authors = [
     { name = "Codex", email = "codex@openai.com" }
 ]
 requires-python = ">=3.12"
-dependencies = ["httpx", "beautifulsoup4", "selectolax", "pydantic", "typer", "aiofiles"]
+dependencies = [
+    "httpx",
+    "beautifulsoup4",
+    "selectolax",
+    "pydantic",
+    "typer",
+    "aiofiles",
+    "playwright",
+]
 
 [project.scripts]
 ainfo = "ainfo:main"

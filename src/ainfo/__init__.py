@@ -15,22 +15,33 @@ app = typer.Typer()
 
 
 @app.command()
-def run(url: str) -> None:
+def run(
+    url: str,
+    render_js: bool = typer.Option(
+        False, help="Render pages using a headless browser before extraction"
+    ),
+) -> None:
     """Fetch ``url`` and display extracted contact information."""
 
-    raw = fetch_data(url)
+    raw = fetch_data(url, render_js=render_js)
     document = parse_data(raw, url=url)
     results = extract_information(document)
     output_results(results)
 
 
 @app.command()
-def crawl(url: str, depth: int = 1) -> None:
+def crawl(
+    url: str,
+    depth: int = 1,
+    render_js: bool = typer.Option(
+        False, help="Render pages using a headless browser before extraction"
+    ),
+) -> None:
     """Crawl ``url`` up to ``depth`` levels and extract contact info."""
 
-    urls = asyncio.run(crawl_urls(url, depth))
+    urls = asyncio.run(crawl_urls(url, depth, render_js=render_js))
     for link in urls:
-        raw = fetch_data(link)
+        raw = fetch_data(link, render_js=render_js)
         document = parse_data(raw, url=link)
         results = extract_information(document)
         typer.echo(f"Results for {link}:")
