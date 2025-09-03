@@ -84,4 +84,31 @@ def extract_information(
     )
 
 
-__all__ = ["extract_information", "extract_text"]
+def extract_custom(doc: Document, patterns: dict[str, str]) -> dict[str, list[str]]:
+    """Extract arbitrary information from ``doc`` using regex ``patterns``.
+
+    Parameters
+    ----------
+    doc:
+        Parsed :class:`Document` to search.
+    patterns:
+        Mapping of field names to regular expression patterns. Each pattern is
+        applied to the page's primary text content and all matches are returned
+        in a list.
+
+    Returns
+    -------
+    dict[str, list[str]]
+        A mapping of the provided field names to lists of matched strings.
+    """
+
+    text = extract_text(doc)
+    results: dict[str, list[str]] = {}
+    for key, pattern in patterns.items():
+        regex = re.compile(pattern, re.IGNORECASE)
+        matches = [m.group(0) for m in regex.finditer(text)]
+        results[key] = list(dict.fromkeys(matches))
+    return results
+
+
+__all__ = ["extract_information", "extract_text", "extract_custom"]

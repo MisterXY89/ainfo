@@ -8,10 +8,10 @@ from pathlib import Path
 
 from .chunking import chunk_text, stream_chunks
 from .crawler import crawl as crawl_urls
-from .extraction import extract_information, extract_text
+from .extraction import extract_information, extract_text, extract_custom
 from .fetching import fetch_data, async_fetch_data
 from .llm_service import LLMService
-from .output import output_results, to_json
+from .output import output_results, to_json, json_schema
 from .parsing import parse_data
 from .schemas import ContactDetails
 
@@ -124,7 +124,15 @@ __all__ = [
     "app",
     "fetch_data",
     "async_fetch_data",
+    "parse_data",
+    "extract_information",
+    "extract_text",
+    "extract_custom",
+    "output_results",
+    "to_json",
+    "json_schema",
     "chunk_text",
     "stream_chunks",
+    "LLMService",
     "ContactDetails",
 ]
