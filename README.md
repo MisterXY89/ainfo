@@ -23,7 +23,8 @@ ainfo run https://example.com
 ```
 
 The command fetches the page, parses its content and prints any emails,
-phone numbers or addresses that were detected.
+phone numbers or addresses that were detected. Use ``--json`` to emit
+machine-readable JSON instead of the default human-friendly format.
 
 For use within an existing asyncio application, the package exposes an
 ``async_fetch_data`` coroutine:
@@ -63,7 +64,8 @@ ainfo crawl https://example.com --depth 2
 ```
 
 The crawler visits pages breadth-first up to the specified depth and prints
-results for every page encountered.
+results for every page encountered. Pass ``--json`` to output the aggregated
+results as JSON instead.
 
 Both commands accept `--render-js` to execute JavaScript before scraping, which
 uses [Playwright](https://playwright.dev/). Installing the browser drivers may

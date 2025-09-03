@@ -32,6 +32,9 @@ def run(
     output: Path | None = typer.Option(
         None, "--output", "-o", help="Write JSON results to PATH.",
     ),
+    json_output: bool = typer.Option(
+        False, "--json", help="Print extracted data as JSON to stdout",
+    ),
 ) -> None:
     """Fetch ``url`` and display extracted contact information."""
 
@@ -45,7 +48,10 @@ def run(
             results = extract_information(
                 document, method=method, llm=llm_for_extraction
             )
-            output_results(results)
+            if json_output:
+                typer.echo(to_json(results))
+            else:
+                output_results(results)
             if output is not None:
                 to_json(results, path=output)
             if summarize:
@@ -54,7 +60,10 @@ def run(
                 typer.echo(llm.summarize(text))
     else:
         results = extract_information(document, method=method, llm=None)
-        output_results(results)
+        if json_output:
+            typer.echo(to_json(results))
+        else:
+            output_results(results)
         if output is not None:
             to_json(results, path=output)
 
@@ -72,6 +81,9 @@ def crawl(
     output: Path | None = typer.Option(
         None, "--output", "-o", help="Write JSON results to PATH.",
     ),
+    json_output: bool = typer.Option(
+        False, "--json", help="Print aggregated results as JSON to stdout",
+    ),
 ) -> None:
     """Crawl ``url`` up to ``depth`` levels and extract contact info."""
 
@@ -83,9 +95,10 @@ def crawl(
             document = parse_data(raw, url=link)
             results = extract_information(document, method=method, llm=llm)
             aggregated_results[link] = results
-            typer.echo(f"Results for {link}:")
-            output_results(results)
-            typer.echo()
+            if not json_output:
+                typer.echo(f"Results for {link}:")
+                output_results(results)
+                typer.echo()
 
     if use_llm:
         with LLMService() as llm:
@@ -95,6 +108,8 @@ def crawl(
 
     if output is not None:
         to_json(aggregated_results, path=output)
+    if json_output:
+        typer.echo(to_json(aggregated_results))
 
 
 def main() -> None:
