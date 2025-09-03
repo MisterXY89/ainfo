@@ -29,15 +29,36 @@ def _gather_content_text(nodes: Iterable[PageNode]) -> list[str]:
     return parts
 
 
-def extract_text(doc: Document) -> str:
-    """Extract and clean the main textual content from ``doc``."""
+def extract_text(
+    doc: Document, joiner: str = " ", as_list: bool = False
+) -> str | list[str]:
+    """Extract and clean the main textual content from ``doc``.
 
-    text = " ".join(_gather_content_text(doc.nodes))
-    return re.sub(r"\s+", " ", text).strip()
+    Parameters
+    ----------
+    doc:
+        Parsed :class:`Document` to process.
+    joiner:
+        String used to join individual text fragments when ``as_list`` is
+        ``False``. Defaults to a single space.
+    as_list:
+        When ``True`` return a list of text fragments instead of a single
+        string.
+    """
+
+    parts = [re.sub(r"\s+", " ", p).strip() for p in _gather_content_text(doc.nodes)]
+    if as_list:
+        return [p for p in parts if p]
+    text = joiner.join(parts)
+    return text.strip()
 
 
 def extract_information(
-    doc: Document, method: str = "regex", llm: LLMService | None = None
+    doc: Document,
+    method: str = "regex",
+    llm: LLMService | None = None,
+    instruction: str | None = None,
+    model: str | None = None,
 ) -> ContactDetails:
     """Extract contact details from a parsed document.
 
@@ -57,13 +78,13 @@ def extract_information(
         if llm is None:
             msg = "LLMService instance required when method='llm'"
             raise ValueError(msg)
-        instruction = (
+        instruction = instruction or (
             "Extract any email addresses, phone numbers, street addresses and "
             "social media profiles from the following text. Respond in JSON "
             "with keys 'emails', 'phone_numbers', 'addresses' and "
             "'social_media'."
         )
-        response = llm.extract(text, instruction)
+        response = llm.extract(text, instruction, model=model)
         try:
             data = json.loads(response)
         except Exception:
@@ -84,25 +105,61 @@ def extract_information(
     )
 
 
-def extract_custom(doc: Document, patterns: dict[str, str]) -> dict[str, list[str]]:
-    """Extract arbitrary information from ``doc`` using regex ``patterns``.
+def extract_custom(
+    doc: Document,
+    patterns: dict[str, str] | None = None,
+    *,
+    llm: LLMService | None = None,
+    prompt: str | None = None,
+    model: str | None = None,
+) -> dict[str, list[str]]:
+    """Extract arbitrary information from ``doc``.
+
+    The extraction can be performed either using regular expression
+    ``patterns`` or delegated to an LLM service when ``llm`` is provided.
 
     Parameters
     ----------
     doc:
         Parsed :class:`Document` to search.
     patterns:
-        Mapping of field names to regular expression patterns. Each pattern is
-        applied to the page's primary text content and all matches are returned
-        in a list.
+        Mapping of field names to regular expression patterns. Required when
+        ``llm`` is ``None``.
+    llm:
+        Optional :class:`LLMService` used to perform extraction via a large
+        language model.
+    prompt:
+        Custom prompt supplied to the LLM. If omitted a generic instruction is
+        used.
+    model:
+        Identifier of the model to use when ``llm`` is provided.
 
     Returns
     -------
     dict[str, list[str]]
-        A mapping of the provided field names to lists of matched strings.
+        A mapping of field names to lists of extracted strings.
     """
 
     text = extract_text(doc)
+    if llm is not None:
+        instruction = prompt or "Extract the requested information as JSON."
+        response = llm.extract(text, instruction, model=model)
+        try:
+            data = json.loads(response)
+        except Exception:
+            data = {}
+        results: dict[str, list[str]] = {}
+        for key, value in data.items():
+            if isinstance(value, list):
+                results[key] = value
+            elif value is not None:
+                results[key] = [value]
+        return results
+
+    if patterns is None:
+        msg = "patterns required when llm is None"
+        raise ValueError(msg)
+
     results: dict[str, list[str]] = {}
     for key, pattern in patterns.items():
         regex = re.compile(pattern, re.IGNORECASE)
