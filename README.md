@@ -1,5 +1,7 @@
 # ainfo
 
+[![Publish documentation](https://github.com/MisterXY89/ainfo/actions/workflows/publish-docs.yml/badge.svg)](https://github.com/MisterXY89/ainfo/actions/workflows/publish-docs.yml) [![Upload Python Package](https://github.com/MisterXY89/ainfo/actions/workflows/python-publish.yml/badge.svg)](https://github.com/MisterXY89/ainfo/actions/workflows/python-publish.yml)
+
 gather structured information from any website - ready for LLMs
 
 ## Architecture
