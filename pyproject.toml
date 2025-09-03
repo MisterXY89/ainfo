@@ -4,7 +4,7 @@ version = "0.1.0"
 description = "Add your description here"
 readme = "README.md"
 authors = [
-    { name = "Codex", email = "codex@openai.com" }
+    { name = "Tilman", email = "xxx [at]" }
 ]
 requires-python = ">=3.12"
 dependencies = [
