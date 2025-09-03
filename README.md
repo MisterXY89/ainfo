@@ -101,6 +101,37 @@ print(contacts.emails, extra["prices"])
 Serialise results with ``to_json`` or inspect the JSON schema with
 ``json_schema(ContactDetails)``.
 
+### Workflow examples
+
+#### Save contact details to JSON
+
+```bash
+pip install -e .
+ainfo run https://example.com --json > contacts.json
+```
+
+#### Summarize a large page with `chunk_text`
+
+```python
+from ainfo import fetch_data, parse_data, chunk_text
+from some_llm import summarize  # pseudo-code
+
+html = fetch_data("https://example.com")
+doc = parse_data(html, url="https://example.com")
+
+parts = [summarize(chunk) for chunk in chunk_text(doc.text_content(), 1000)]
+print(" ".join(parts))
+```
+
+#### Stream chunks on the fly
+
+```python
+from ainfo import stream_chunks
+
+for chunk in stream_chunks("https://example.com", size=1000):
+    handle(chunk)  # send to LLM or other processor
+```
+
 ### Environment configuration
 
 Copy `.env.example` to `.env` and fill in `OPENROUTER_API_KEY`, `OPENROUTER_MODEL`, and `OPENROUTER_BASE_URL` to enable LLM-powered features.
