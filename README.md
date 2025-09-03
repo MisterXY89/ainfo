@@ -57,8 +57,7 @@ require running `playwright install`.
 
 ### Environment configuration
 
-Copy `.env.example` to `.env` and populate it with your OpenRouter credentials
-to enable LLM-powered features.
+Copy `.env.example` to `.env` and fill in `OPENROUTER_API_KEY`, `OPENROUTER_MODEL`, and `OPENROUTER_BASE_URL` to enable LLM-powered features.
 
 ## Limitations
 
