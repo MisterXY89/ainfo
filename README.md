@@ -15,6 +15,8 @@ The project separates concerns into distinct modules:
 
 ## Usage
 
+### Command line
+
 Install the project and run the CLI against a URL:
 
 ```bash
@@ -77,11 +79,34 @@ require running `playwright install`.
 Utilities ``chunk_text`` and ``stream_chunks`` are available to break large
 pages into manageable pieces when sending content to LLMs.
 
+### Programmatic API
+
+Most components can also be used directly from Python. Fetch and parse a page,
+then run the extractors yourself:
+
+```python
+from ainfo import fetch_data, parse_data, extract_information, extract_custom
+
+html = fetch_data("https://example.com")
+doc = parse_data(html, url="https://example.com")
+
+# Contact details as a pydantic model
+contacts = extract_information(doc)
+
+# Any additional data via regular expressions
+extra = extract_custom(doc, {"prices": r"\$\d+(?:\.\d{2})?"})
+print(contacts.emails, extra["prices"])
+```
+
+Serialise results with ``to_json`` or inspect the JSON schema with
+``json_schema(ContactDetails)``.
+
 ### Environment configuration
 
 Copy `.env.example` to `.env` and fill in `OPENROUTER_API_KEY`, `OPENROUTER_MODEL`, and `OPENROUTER_BASE_URL` to enable LLM-powered features.
 
 ## Limitations
 
-- Extraction currently focuses on contact and social media details; additional
-  domain-specific extractors can be added.
+- The built-in ``extract_information`` targets contact and social media
+  details. Use ``extract_custom`` for other patterns or implement your own
+  domain-specific extractors.
