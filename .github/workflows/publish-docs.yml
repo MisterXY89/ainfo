@@ -34,11 +34,16 @@ jobs:
       - name: Build documentation
         run: |
           pdoc src/ainfo -o site
+          if [ -f site/ainfo.html ]; then
+            mv site/ainfo.html site/index.html
+          else
+            mv site/ainfo/index.html site/index.html
+          fi
           touch site/.nojekyll
       - name: Upload artifact
         uses: actions/upload-pages-artifact@v3
         with:
-          path: site/ainfo
+          path: site
   deploy:
     environment:
       name: github-pages
