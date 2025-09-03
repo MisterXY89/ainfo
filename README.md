@@ -23,8 +23,11 @@ ainfo run https://example.com
 ```
 
 The command fetches the page, parses its content and prints any emails,
-phone numbers or addresses that were detected. Use ``--json`` to emit
-machine-readable JSON instead of the default human-friendly format.
+phone numbers, street addresses or social media profiles that were detected.
+Use ``--json`` to emit machine-readable JSON instead of the default
+human-friendly format. The JSON conforms to the
+``ainfo.schemas.ContactDetails`` Pydantic model so consumers can rely on a
+stable schema. Retrieve the JSON schema with ``ainfo.output.json_schema``.
 
 For use within an existing asyncio application, the package exposes an
 ``async_fetch_data`` coroutine:
@@ -71,12 +74,14 @@ Both commands accept `--render-js` to execute JavaScript before scraping, which
 uses [Playwright](https://playwright.dev/). Installing the browser drivers may
 require running `playwright install`.
 
+Utilities ``chunk_text`` and ``stream_chunks`` are available to break large
+pages into manageable pieces when sending content to LLMs.
+
 ### Environment configuration
 
 Copy `.env.example` to `.env` and fill in `OPENROUTER_API_KEY`, `OPENROUTER_MODEL`, and `OPENROUTER_BASE_URL` to enable LLM-powered features.
 
 ## Limitations
 
-- Crawling retrieves each page twice: once for discovery and once for
-  extraction, which may impact performance on large sites.
-- Extraction focuses on basic contact details; more extractors can be added.
+- Extraction currently focuses on contact and social media details; additional
+  domain-specific extractors can be added.

@@ -5,6 +5,7 @@ from ainfo.extractors.contact import (
     extract_emails,
     extract_phone_numbers,
 )
+from ainfo.extractors.social import extract_social_profiles
 
 
 def test_extract_emails() -> None:
@@ -34,4 +35,16 @@ def test_extract_addresses() -> None:
     assert extract_addresses(text) == [
         "123 Main St",
         "456 Elm Road",
+    ]
+
+
+def test_extract_social_profiles() -> None:
+    """Social media URLs are extracted and deduplicated."""
+    text = (
+        "Find us at https://twitter.com/example and https://linkedin.com/company/example."
+        " Also https://twitter.com/example again."
+    )
+    assert extract_social_profiles(text) == [
+        "https://twitter.com/example",
+        "https://linkedin.com/company/example",
     ]

@@ -5,14 +5,15 @@ from __future__ import annotations
 import asyncio
 import typer
 from pathlib import Path
-from collections.abc import Mapping
 
+from .chunking import chunk_text, stream_chunks
 from .crawler import crawl as crawl_urls
 from .extraction import extract_information, extract_text
 from .fetching import fetch_data, async_fetch_data
 from .llm_service import LLMService
 from .output import output_results, to_json
 from .parsing import parse_data
+from .schemas import ContactDetails
 
 app = typer.Typer()
 
@@ -88,7 +89,7 @@ def crawl(
     """Crawl ``url`` up to ``depth`` levels and extract contact info."""
 
     method = "llm" if use_llm else "regex"
-    aggregated_results: dict[str, Mapping[str, list[str]]] = {}
+    aggregated_results: dict[str, ContactDetails] = {}
 
     async def _crawl(llm: LLMService | None = None) -> None:
         async for link, raw in crawl_urls(url, depth, render_js=render_js):
@@ -123,4 +124,7 @@ __all__ = [
     "app",
     "fetch_data",
     "async_fetch_data",
+    "chunk_text",
+    "stream_chunks",
+    "ContactDetails",
 ]

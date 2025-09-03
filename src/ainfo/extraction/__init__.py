@@ -12,6 +12,8 @@ from ..extractors.contact import (
     extract_emails,
     extract_phone_numbers,
 )
+from ..extractors.social import extract_social_profiles
+from ..schemas import ContactDetails
 from ..llm_service import LLMService
 
 
@@ -36,7 +38,7 @@ def extract_text(doc: Document) -> str:
 
 def extract_information(
     doc: Document, method: str = "regex", llm: LLMService | None = None
-) -> dict[str, list[str]]:
+) -> ContactDetails:
     """Extract contact details from a parsed document.
 
     Parameters
@@ -56,27 +58,30 @@ def extract_information(
             msg = "LLMService instance required when method='llm'"
             raise ValueError(msg)
         instruction = (
-            "Extract any email addresses, phone numbers and street addresses "
-            "from the following text. Respond in JSON with keys 'emails', "
-            "'phone_numbers' and 'addresses'."
+            "Extract any email addresses, phone numbers, street addresses and "
+            "social media profiles from the following text. Respond in JSON "
+            "with keys 'emails', 'phone_numbers', 'addresses' and "
+            "'social_media'."
         )
         response = llm.extract(text, instruction)
         try:
             data = json.loads(response)
         except Exception:
             data = {}
-        return {
-            "emails": data.get("emails", []),
-            "phone_numbers": data.get("phone_numbers", []),
-            "addresses": data.get("addresses", []),
-        }
+        return ContactDetails(
+            emails=data.get("emails", []),
+            phone_numbers=data.get("phone_numbers", []),
+            addresses=data.get("addresses", []),
+            social_media=data.get("social_media", []),
+        )
 
     # Default to regex based extraction
-    return {
-        "emails": extract_emails(text),
-        "phone_numbers": extract_phone_numbers(text),
-        "addresses": extract_addresses(text),
-    }
+    return ContactDetails(
+        emails=extract_emails(text),
+        phone_numbers=extract_phone_numbers(text),
+        addresses=extract_addresses(text),
+        social_media=extract_social_profiles(text),
+    )
 
 
 __all__ = ["extract_information", "extract_text"]

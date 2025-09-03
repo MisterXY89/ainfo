@@ -17,4 +17,5 @@ def test_cli_run_json_output(monkeypatch):
         "emails": ["test@example.com"],
         "phone_numbers": [],
         "addresses": [],
+        "social_media": [],
     }
