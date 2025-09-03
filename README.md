@@ -23,6 +23,13 @@ ainfo run https://example.com
 The command fetches the page, parses its content and prints any emails,
 phone numbers or addresses that were detected.
 
+If the target site relies on client-side JavaScript, enable rendering with a
+headless browser:
+
+```bash
+ainfo run https://example.com --render-js
+```
+
 To crawl multiple pages starting from a URL and extract contact details from
 each one:
 
@@ -32,6 +39,10 @@ ainfo crawl https://example.com --depth 2
 
 The crawler visits pages breadth-first up to the specified depth and prints
 results for every page encountered.
+
+Both commands accept `--render-js` to execute JavaScript before scraping, which
+uses [Playwright](https://playwright.dev/). Installing the browser drivers may
+require running `playwright install`.
 
 ## Limitations
 

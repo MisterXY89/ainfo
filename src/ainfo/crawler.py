@@ -34,6 +34,7 @@ async def crawl(
     start_url: str,
     max_depth: int,
     rules: Mapping[str, DomainRule] | None = None,
+    render_js: bool = False,
 ) -> list[str]:
     """Crawl web pages starting from ``start_url`` up to ``max_depth`` levels.
 
@@ -52,6 +53,8 @@ async def crawl(
     rules:
         Optional mapping of domain names to :class:`DomainRule` instances which
         configure crawling behaviour on a per-domain basis.
+    render_js:
+        If ``True``, use a headless browser to render pages before parsing them.
 
     Returns
     -------
@@ -67,7 +70,7 @@ async def crawl(
     queue: asyncio.Queue[tuple[str, int]] = asyncio.Queue()
     await queue.put((start_url, 0))
 
-    async with AsyncFetcher() as fetcher:
+    async with AsyncFetcher(render_js=render_js) as fetcher:
         while not queue.empty():
             url, depth = await queue.get()
             if depth > max_depth or url in visited:
