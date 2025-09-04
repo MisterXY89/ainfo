@@ -142,6 +142,8 @@ print(" ".join(parts))
 
 #### Stream chunks on the fly
 
+Fetch and chunk a page directly by URL or pass in raw text:
+
 ```python
 from ainfo import stream_chunks
 
