@@ -9,6 +9,8 @@ from pathlib import Path
 
 import typer
 
+__version__ = "0.2.1"
+
 from .chunking import chunk_text, stream_chunks
 from .crawler import crawl as crawl_urls
 from .extraction import extract_information, extract_text, extract_custom
@@ -224,4 +226,5 @@ __all__ = [
     "stream_chunks",
     "LLMService",
     "ContactDetails",
+    "__version__",
 ]
