@@ -60,13 +60,23 @@ def run(
     json_output: bool = typer.Option(
         False, "--json", help="Print extracted data as JSON to stdout",
     ),
+    include_text: bool = typer.Option(
+        True,
+        "--text/--no-text",
+        help="Include page text in the results",
+    ),
 ) -> None:
     """Fetch ``url`` and display extracted text and optional information."""
 
     raw = fetch_data(url, render_js=render_js)
     document = parse_data(raw, url=url)
-    text = extract_text(document)
-    results: dict[str, object] = {"text": text}
+    text: str | None = None
+    if include_text or summarize:
+        text = extract_text(document)
+
+    results: dict[str, object] = {}
+    if include_text and text is not None:
+        results["text"] = text
 
     needs_llm = summarize or (use_llm and "contacts" in extract)
 
@@ -82,7 +92,7 @@ def run(
                     )
                 else:
                     results[name] = func(document)
-            if summarize:
+            if summarize and text is not None:
                 results["summary"] = llm.summarize(text)
     else:
         for name in extract:
@@ -108,7 +118,8 @@ def run(
         }
         typer.echo(json.dumps(serialisable))
     else:
-        typer.echo(text)
+        if include_text and text is not None:
+            typer.echo(text)
         for name in extract:
             value = results.get(name)
             if name == "contacts" and isinstance(value, ContactDetails):
@@ -147,6 +158,11 @@ def crawl(
     json_output: bool = typer.Option(
         False, "--json", help="Print aggregated results as JSON to stdout",
     ),
+    include_text: bool = typer.Option(
+        True,
+        "--text/--no-text",
+        help="Include page text in the results",
+    ),
 ) -> None:
     """Crawl ``url`` up to ``depth`` levels and extract text and data."""
 
@@ -156,8 +172,11 @@ def crawl(
     async def _crawl(llm: LLMService | None = None) -> None:
         async for link, raw in crawl_urls(url, depth, render_js=render_js):
             document = parse_data(raw, url=link)
-            text = extract_text(document)
-            page_results: dict[str, object] = {"text": text}
+            page_results: dict[str, object] = {}
+            text = ""
+            if include_text:
+                text = extract_text(document)
+                page_results["text"] = text
             for name in extract:
                 func = AVAILABLE_EXTRACTORS.get(name)
                 if func is None:
@@ -169,7 +188,8 @@ def crawl(
             aggregated_results[link] = page_results
             if not json_output:
                 typer.echo(f"Results for {link}:")
-                typer.echo(text)
+                if include_text:
+                    typer.echo(text)
                 for name in extract:
                     value = page_results.get(name)
                     if name == "contacts" and isinstance(value, ContactDetails):
