@@ -1,4 +1,5 @@
 from collections import defaultdict
+import json
 
 from typer.testing import CliRunner
 
@@ -39,3 +40,20 @@ def test_cli_crawl_fetches_each_url_once(monkeypatch):
         "https://example.com": 1,
         "https://example.com/about": 1,
     }
+
+
+def test_cli_crawl_without_text(monkeypatch):
+    async def fake_crawl(url, depth, render_js=False):
+        yield "https://example.com", "<html><body><a href='https://x.com'>x</a></body></html>"
+
+    monkeypatch.setattr(ainfo, "crawl_urls", fake_crawl)
+    runner = CliRunner()
+    result = runner.invoke(
+        ainfo.app,
+        ["crawl", "https://example.com", "--json", "--no-text", "--extract", "links"],
+    )
+    assert result.exit_code == 0
+    data = json.loads(result.stdout.strip())
+    page = data["https://example.com"]
+    assert "text" not in page
+    assert "links" in page

@@ -134,8 +134,9 @@ def extract_custom(
         Optional :class:`LLMService` used to perform extraction via a large
         language model.
     prompt:
-        Custom prompt supplied to the LLM. If omitted a generic instruction is
-        used.
+        Custom prompt supplied to the LLM. It should describe the desired JSON
+        structure, for example ``"Extract product names as a list under the key
+        'products'"``. If omitted a generic instruction is used.
     model:
         Identifier of the model to use when ``llm`` is provided.
 

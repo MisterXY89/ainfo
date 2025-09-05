@@ -40,7 +40,8 @@ Available extractors include:
 
 Use ``--json`` to emit machine-readable JSON instead of the default
 human-friendly format. The JSON keys mirror the selected extractors, with
-``text`` always included. Retrieve the JSON schema for contact details with
+``text`` included by default. Pass ``--no-text`` when you only need the
+extraction results. Retrieve the JSON schema for contact details with
 ``ainfo.output.json_schema``.
 
 For use within an existing asyncio application, the package exposes an
@@ -117,6 +118,53 @@ print(contacts.emails, extra["prices"])
 
 Serialise results with ``to_json`` or inspect the JSON schema with
 ``json_schema(ContactDetails)``.
+
+#### Custom extractors
+
+Define your own extractor by writing a function that accepts a
+``Document`` and registering it in ``ainfo.extractors.AVAILABLE_EXTRACTORS``.
+
+```python
+# my_extractors.py
+from ainfo.models import Document
+from ainfo.extraction import extract_custom
+from ainfo.extractors import AVAILABLE_EXTRACTORS
+
+def extract_prices(doc: Document) -> list[str]:
+    data = extract_custom(doc, {"prices": r"\$\d+(?:\.\d{2})?"})
+    return data.get("prices", [])
+
+AVAILABLE_EXTRACTORS["prices"] = extract_prices
+```
+
+After importing ``my_extractors`` your extractor becomes available on the
+command line:
+
+```bash
+ainfo run https://example.com --extract prices --no-text
+```
+
+#### LLM-based extraction
+
+``extract_custom`` can also delegate to a large language model. Supply an
+``LLMService`` and a prompt describing the desired output:
+
+```python
+from ainfo import fetch_data, parse_data
+from ainfo.extraction import extract_custom
+from ainfo.llm_service import LLMService
+
+html = fetch_data("https://example.com")
+doc = parse_data(html, url="https://example.com")
+
+with LLMService() as llm:
+    data = extract_custom(
+        doc,
+        llm=llm,
+        prompt="List all products with their prices as JSON under 'products'",
+    )
+print(data["products"])
+```
 
 ### Workflow examples
 
