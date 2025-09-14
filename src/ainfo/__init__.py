@@ -9,7 +9,7 @@ from pathlib import Path
 
 import typer
 
-__version__ = "0.2.1"
+__version__ = "0.2.2"
 
 from .chunking import chunk_text, stream_chunks
 from .crawler import crawl as crawl_urls
