@@ -203,6 +203,28 @@ for chunk in stream_chunks("https://example.com", size=1000):
 
 Copy `.env.example` to `.env` and fill in `OPENROUTER_API_KEY`, `OPENROUTER_MODEL`, and `OPENROUTER_BASE_URL` to enable LLM-powered features.
 
+
+## n8n integration
+
+A minimal FastAPI wrapper and accompanying Dockerfile live in the `integration/` directory. Build the container and run the service:
+
+```bash
+docker build -f integration/Dockerfile -t ainfo-api .
+docker run -p 8000:8000 -e OPENROUTER_API_KEY=your_key ainfo-api
+# or use an env file
+docker run -p 8000:8000 --env-file .env ainfo-api
+```
+
+The server exposes a `/run` endpoint that executes:
+
+```bash
+ainfo run <url> --use-llm --summarize --render-js --extract contacts --no-text --json
+```
+
+`integration/api.py` uses [`python-dotenv`](https://pypi.org/project/python-dotenv/) to load a `.env` file, so sensitive values
+such as `OPENROUTER_API_KEY` can be supplied via environment variables. This makes it easy to call `ainfo` from workflow tools
+like [n8n](https://n8n.io/).
+
 ## Limitations
 
 - The built-in ``extract_information`` targets contact and social media
