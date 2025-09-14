@@ -20,7 +20,7 @@ The project separates concerns into distinct modules:
 Install the project and run the CLI against a URL:
 
 ```bash
-pip install -e .
+pip install ainfo
 ainfo run https://example.com
 ```
 
@@ -171,7 +171,7 @@ print(data["products"])
 #### Save contact details to JSON
 
 ```bash
-pip install -e .
+pip install ainfo
 ainfo run https://example.com --json > contacts.json
 ```
 
