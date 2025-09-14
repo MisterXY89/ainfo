@@ -1,4 +1,7 @@
+import json
+
 from ainfo import parse_data, extract_information
+from ainfo.schemas import Address
 
 
 class DummyLLM:
@@ -7,7 +10,20 @@ class DummyLLM:
 
     def extract(self, text: str, instruction: str, model: str | None = None) -> str:
         self.calls.append((text, instruction, model))
-        return '{"emails": ["test@example.com"], "phone_numbers": [], "addresses": [], "social_media": []}'
+        return json.dumps(
+            {
+                "emails": ["test@example.com"],
+                "phone_numbers": [],
+                "addresses": [
+                    {
+                        "street": "123 Main St",
+                        "city": "Springfield",
+                        "country": "USA",
+                    }
+                ],
+                "social_media": [],
+            }
+        )
 
 
 def test_extract_information_llm_custom_prompt_and_model() -> None:
@@ -22,5 +38,6 @@ def test_extract_information_llm_custom_prompt_and_model() -> None:
         model="custom-model",
     )
     assert result.emails == ["test@example.com"]
+    assert result.addresses == [Address(street="123 Main St", city="Springfield", country="USA")]
     assert llm.calls[0][1] == "Find all emails"
     assert llm.calls[0][2] == "custom-model"
