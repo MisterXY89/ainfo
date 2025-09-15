@@ -10,4 +10,4 @@ RUN pip install --no-cache-dir .
 RUN python -m playwright install --with-deps
 
 EXPOSE 8000
-CMD ["uvicorn", "integration.api:app", "--host", "127.0.0.1", "--port", "8000"]
+CMD ["uvicorn", "integration.api:app", "--host", "0.0.0.0", "--port", "8000"]
