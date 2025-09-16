@@ -5,6 +5,8 @@ import json
 import os
 from dotenv import load_dotenv
 
+from ainfo.config import LLMConfig
+
 load_dotenv()
 
 API_KEY_ENV = "AINFO_API_KEY"
@@ -17,6 +19,7 @@ if not API_KEY:
     )
 
 api_key_header = APIKeyHeader(name=API_KEY_HEADER_NAME, auto_error=False)
+DEFAULT_SUMMARY_LANGUAGE = LLMConfig().summary_language or "German"
 
 app = FastAPI()
 
@@ -36,6 +39,9 @@ def require_api_key(provided_key: str = Security(api_key_header)) -> str:
 @app.get("/run")
 def run(
     url: str = Query(..., description="URL to process"),
+    summary_language: str = Query(
+        DEFAULT_SUMMARY_LANGUAGE, description="Language for the LLM summary"
+    ),
     _: str = Security(require_api_key),
 ):
     """Execute the ainfo CLI against the provided URL.
@@ -50,6 +56,8 @@ def run(
         "--use-llm",
         "--summarize",
         "--render-js",
+        "--summary-language",
+        summary_language,
         "--extract",
         "contacts",
         "--no-text",
