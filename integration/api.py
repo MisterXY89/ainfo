@@ -1,4 +1,5 @@
-from fastapi import FastAPI, HTTPException, Query
+from fastapi import FastAPI, HTTPException, Query, Security, status
+from fastapi.security import APIKeyHeader
 import subprocess
 import json
 import os
@@ -6,11 +7,37 @@ from dotenv import load_dotenv
 
 load_dotenv()
 
+API_KEY_ENV = "AINFO_API_KEY"
+API_KEY_HEADER_NAME = "X-API-Key"
+API_KEY = os.getenv(API_KEY_ENV)
+
+if not API_KEY:
+    raise RuntimeError(
+        f"Environment variable {API_KEY_ENV} must be set to secure the API"
+    )
+
+api_key_header = APIKeyHeader(name=API_KEY_HEADER_NAME, auto_error=False)
+
 app = FastAPI()
 
 
+def require_api_key(provided_key: str = Security(api_key_header)) -> str:
+    """Verify that the request supplies the expected API key."""
+
+    if provided_key == API_KEY:
+        return provided_key
+
+    raise HTTPException(
+        status_code=status.HTTP_401_UNAUTHORIZED,
+        detail="Invalid or missing API key",
+    )
+
+
 @app.get("/run")
-def run(url: str = Query(..., description="URL to process")):
+def run(
+    url: str = Query(..., description="URL to process"),
+    _: str = Security(require_api_key),
+):
     """Execute the ainfo CLI against the provided URL.
 
     The command runs with LLM support enabled, summarisation, JavaScript rendering
