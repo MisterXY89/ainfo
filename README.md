@@ -210,7 +210,7 @@ A minimal FastAPI wrapper and accompanying Dockerfile live in the `integration/`
 
 ```bash
 docker build -f integration/Dockerfile -t ainfo-api .
-docker run -p 8000:8000 -e OPENROUTER_API_KEY=your_key ainfo-api
+docker run -p 8000:8000 -e OPENROUTER_API_KEY=your_key -e AINFO_API_KEY=choose_a_secret ainfo-api
 # or use an env file
 docker run -p 8000:8000 --env-file .env ainfo-api
 ```
@@ -222,8 +222,9 @@ ainfo run <url> --use-llm --summarize --render-js --extract contacts --no-text -
 ```
 
 `integration/api.py` uses [`python-dotenv`](https://pypi.org/project/python-dotenv/) to load a `.env` file, so sensitive values
-such as `OPENROUTER_API_KEY` can be supplied via environment variables. This makes it easy to call `ainfo` from workflow tools
-like [n8n](https://n8n.io/).
+such as `OPENROUTER_API_KEY` can be supplied via environment variables. Protect the endpoint by setting `AINFO_API_KEY` and
+include an `X-API-Key` header with that value on every request. This makes it easy to call `ainfo` from workflow tools like
+[n8n](https://n8n.io/).
 
 ## Limitations
 
