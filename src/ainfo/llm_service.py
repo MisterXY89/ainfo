@@ -7,6 +7,27 @@ import httpx
 from .config import LLMConfig
 
 
+DEFAULT_SUMMARY_PROMPT = (
+    "You are preparing research to personalise a B2B cold outreach email.\n"
+    "Analyse the webpage content and capture details that make the outreach\n"
+    "feel bespoke. Use only information that is explicitly stated or strongly\n"
+    "implied; never fabricate facts.\n\n"
+    "Respond in Markdown with these sections:\n"
+    "1. **Company Overview** – one sentence describing what the organisation\n"
+    "   does or offers.\n"
+    "2. **Ideal Customers / Industries** – audiences they target; write 'Not\n"
+    "   mentioned' if absent.\n"
+    "3. **Notable Signals** – bullet list of recent initiatives, technologies,\n"
+    "   hiring plans, metrics or news relevant to outreach; state 'Not\n"
+    "   mentioned' if none.\n"
+    "4. **Potential Needs or Pain Points** – briefly connect observed signals\n"
+    "   to likely needs; say 'Not evident' when unsure.\n"
+    "5. **Suggested Outreach Angle** – one sentence proposing how to tailor an\n"
+    "   email using the above insights.\n\n"
+    "Keep the entire response under 150 words."
+)
+
+
 class LLMService:
     """Client for interacting with an LLM via the OpenRouter API."""
 
@@ -59,10 +80,9 @@ class LLMService:
         return self._chat([{"role": "user", "content": prompt}], model=model)
 
     def summarize(self, text: str, model: str | None = None) -> str:
-        """Return a brief summary of ``text``."""
+        """Return a cold-outreach-ready summary of ``text``."""
 
-        instruction = "Summarise the following content:"
-        return self.extract(text, instruction, model=model)
+        return self.extract(text, DEFAULT_SUMMARY_PROMPT, model=model)
 
 
 class AsyncLLMService:
@@ -92,8 +112,7 @@ class AsyncLLMService:
         return await self._chat([{"role": "user", "content": prompt}], model=model)
 
     async def summarize(self, text: str, model: str | None = None) -> str:
-        instruction = "Summarise the following content:"
-        return await self.extract(text, instruction, model=model)
+        return await self.extract(text, DEFAULT_SUMMARY_PROMPT, model=model)
 
     async def aclose(self) -> None:
         await self._client.aclose()
@@ -106,4 +125,4 @@ class AsyncLLMService:
         return False
 
 
-__all__ = ["LLMService", "AsyncLLMService"]
+__all__ = ["LLMService", "AsyncLLMService", "DEFAULT_SUMMARY_PROMPT"]
