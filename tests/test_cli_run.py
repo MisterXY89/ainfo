@@ -25,6 +25,26 @@ def test_cli_run_json_output(monkeypatch):
     assert "text" in data
 
 
+def test_cli_run_contacts_in_footer(monkeypatch):
+    html = "<html><body><footer>Kontakt: kontakt@example.de</footer></body></html>"
+    monkeypatch.setattr(ainfo, "fetch_data", lambda url, render_js=False: html)
+    runner = CliRunner()
+    result = runner.invoke(
+        ainfo.app,
+        [
+            "run",
+            "https://example.com",
+            "--json",
+            "--extract",
+            "contacts",
+            "--no-text",
+        ],
+    )
+    assert result.exit_code == 0
+    data = json.loads(result.stdout.strip())
+    assert data["contacts"]["emails"] == ["kontakt@example.de"]
+
+
 def test_cli_run_without_text(monkeypatch):
     html = "<html><body><p>no contacts</p></body></html>"
     monkeypatch.setattr(ainfo, "fetch_data", lambda url, render_js=False: html)
