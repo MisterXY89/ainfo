@@ -51,6 +51,12 @@ def run(
     summarize: bool = typer.Option(
         False, help="Summarize page content using the LLM",
     ),
+    summary_language: str = typer.Option(
+        "German",
+        "--summary-language",
+        help="Language used for LLM summaries",
+        envvar="AINFO_SUMMARY_LANGUAGE",
+    ),
     extract: list[str] = typer.Option(
         [], "--extract", "-e", help="Additional extractors to run",
     ),
@@ -93,7 +99,9 @@ def run(
                 else:
                     results[name] = func(document)
             if summarize and text is not None:
-                results["summary"] = llm.summarize(text)
+                results["summary"] = llm.summarize(
+                    text, language=summary_language
+                )
     else:
         for name in extract:
             func = AVAILABLE_EXTRACTORS.get(name)

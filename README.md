@@ -67,6 +67,10 @@ export OPENROUTER_API_KEY=your_key
 ainfo run https://example.com --use-llm --summarize
 ```
 
+Summaries are generated in German by default. Override the language with
+`--summary-language <LANG>` on the CLI or by setting the `AINFO_SUMMARY_LANGUAGE`
+environment variable.
+
 If the target site relies on client-side JavaScript, enable rendering with a
 headless browser:
 
@@ -220,6 +224,9 @@ The server exposes a `/run` endpoint that executes:
 ```bash
 ainfo run <url> --use-llm --summarize --render-js --extract contacts --no-text --json
 ```
+
+Pass an optional `summary_language` query parameter to control the summary
+language (default: German).
 
 `integration/api.py` uses [`python-dotenv`](https://pypi.org/project/python-dotenv/) to load a `.env` file, so sensitive values
 such as `OPENROUTER_API_KEY` can be supplied via environment variables. Protect the endpoint by setting `AINFO_API_KEY` and

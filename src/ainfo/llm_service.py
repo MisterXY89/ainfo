@@ -7,7 +7,9 @@ import httpx
 from .config import LLMConfig
 
 
-DEFAULT_SUMMARY_PROMPT = (
+DEFAULT_SUMMARY_LANGUAGE = "German"
+
+SUMMARY_PROMPT_TEMPLATE = (
     "You are preparing research to personalise a B2B cold outreach email.\n"
     "Analyse the webpage content and capture details that make the outreach\n"
     "feel bespoke. Use only information that is explicitly stated or strongly\n"
@@ -17,15 +19,31 @@ DEFAULT_SUMMARY_PROMPT = (
     "   does or offers.\n"
     "2. **Ideal Customers / Industries** – audiences they target; write 'Not\n"
     "   mentioned' if absent.\n"
-    "3. **Notable Signals** – bullet list of recent initiatives, technologies,\n"
-    "   hiring plans, metrics or news relevant to outreach; state 'Not\n"
-    "   mentioned' if none.\n"
+    "3. **Notable Signals** – bullet list of recent initiatives, technologies, "
+    "hiring plans, metrics or news relevant to outreach; state 'Not "
+    "mentioned' if none.\n"
     "4. **Potential Needs or Pain Points** – briefly connect observed signals\n"
     "   to likely needs; say 'Not evident' when unsure.\n"
     "5. **Suggested Outreach Angle** – one sentence proposing how to tailor an\n"
     "   email using the above insights.\n\n"
-    "Keep the entire response under 150 words."
+    "Keep the entire response under 150 words.\n"
+    "Write the full response in {language}."
 )
+
+
+
+def build_summary_prompt(language: str | None = None) -> str:
+    """Return the default summary prompt rendered for ``language``."""
+
+    selected = (language or DEFAULT_SUMMARY_LANGUAGE).strip()
+    if not selected:
+        selected = DEFAULT_SUMMARY_LANGUAGE
+    return SUMMARY_PROMPT_TEMPLATE.format(language=selected)
+
+
+DEFAULT_SUMMARY_PROMPT = build_summary_prompt()
+
+
 
 
 class LLMService:
@@ -33,6 +51,10 @@ class LLMService:
 
     def __init__(self, config: LLMConfig | None = None) -> None:
         self.config = config or LLMConfig()
+        configured_language = (
+            self.config.summary_language or DEFAULT_SUMMARY_LANGUAGE
+        )
+        self.summary_language = configured_language.strip() or DEFAULT_SUMMARY_LANGUAGE
         if not self.config.api_key:
             msg = "OPENROUTER_API_KEY is required to use the LLM service"
             raise RuntimeError(msg)
@@ -79,10 +101,13 @@ class LLMService:
         prompt = f"{instruction}\n\n{text}"
         return self._chat([{"role": "user", "content": prompt}], model=model)
 
-    def summarize(self, text: str, model: str | None = None) -> str:
+    def summarize(
+        self, text: str, model: str | None = None, language: str | None = None
+    ) -> str:
         """Return a cold-outreach-ready summary of ``text``."""
 
-        return self.extract(text, DEFAULT_SUMMARY_PROMPT, model=model)
+        prompt = build_summary_prompt(language or self.summary_language)
+        return self.extract(text, prompt, model=model)
 
 
 class AsyncLLMService:
@@ -90,6 +115,10 @@ class AsyncLLMService:
 
     def __init__(self, config: LLMConfig | None = None) -> None:
         self.config = config or LLMConfig()
+        configured_language = (
+            self.config.summary_language or DEFAULT_SUMMARY_LANGUAGE
+        )
+        self.summary_language = configured_language.strip() or DEFAULT_SUMMARY_LANGUAGE
         if not self.config.api_key:
             msg = "OPENROUTER_API_KEY is required to use the LLM service"
             raise RuntimeError(msg)
@@ -111,8 +140,11 @@ class AsyncLLMService:
         prompt = f"{instruction}\n\n{text}"
         return await self._chat([{"role": "user", "content": prompt}], model=model)
 
-    async def summarize(self, text: str, model: str | None = None) -> str:
-        return await self.extract(text, DEFAULT_SUMMARY_PROMPT, model=model)
+    async def summarize(
+        self, text: str, model: str | None = None, language: str | None = None
+    ) -> str:
+        prompt = build_summary_prompt(language or self.summary_language)
+        return await self.extract(text, prompt, model=model)
 
     async def aclose(self) -> None:
         await self._client.aclose()
@@ -125,4 +157,11 @@ class AsyncLLMService:
         return False
 
 
-__all__ = ["LLMService", "AsyncLLMService", "DEFAULT_SUMMARY_PROMPT"]
+__all__ = [
+    "LLMService",
+    "AsyncLLMService",
+    "DEFAULT_SUMMARY_PROMPT",
+    "DEFAULT_SUMMARY_LANGUAGE",
+    "SUMMARY_PROMPT_TEMPLATE",
+    "build_summary_prompt",
+]

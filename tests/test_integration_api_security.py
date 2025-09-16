@@ -43,7 +43,10 @@ def test_run_endpoint_accepts_valid_key(monkeypatch: pytest.MonkeyPatch) -> None
         def __init__(self) -> None:
             self.stdout = "{\"ok\": true}"
 
+    commands: list[list[str]] = []
+
     def fake_run(*args, **kwargs):
+        commands.append(list(args[0]))
         return DummyCompletedProcess()
 
     monkeypatch.setattr(api_module.subprocess, "run", fake_run)
@@ -57,3 +60,39 @@ def test_run_endpoint_accepts_valid_key(monkeypatch: pytest.MonkeyPatch) -> None
 
     assert response.status_code == 200
     assert response.json() == {"ok": True}
+    assert commands
+    cmd = commands[0]
+    assert "--summary-language" in cmd
+    lang_index = cmd.index("--summary-language") + 1
+    assert cmd[lang_index] == "German"
+
+
+def test_run_endpoint_custom_summary_language(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    api_module = reload_integration_api(monkeypatch, api_key="valid-key")
+
+    class DummyCompletedProcess:
+        def __init__(self) -> None:
+            self.stdout = "{\"ok\": true}"
+
+    commands: list[list[str]] = []
+
+    def fake_run(*args, **kwargs):
+        commands.append(list(args[0]))
+        return DummyCompletedProcess()
+
+    monkeypatch.setattr(api_module.subprocess, "run", fake_run)
+
+    client = TestClient(api_module.app)
+    response = client.get(
+        "/run",
+        params={"url": "https://example.com", "summary_language": "Spanish"},
+        headers={"X-API-Key": "valid-key"},
+    )
+
+    assert response.status_code == 200
+    assert response.json() == {"ok": True}
+    cmd = commands[0]
+    lang_index = cmd.index("--summary-language") + 1
+    assert cmd[lang_index] == "Spanish"
