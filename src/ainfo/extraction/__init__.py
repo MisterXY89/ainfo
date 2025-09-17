@@ -121,7 +121,7 @@ def extract_information(
 
     # Default to regex based extraction
     return ContactDetails(
-        emails=extract_emails(text),
+        emails=extract_emails(doc),
         phone_numbers=extract_phone_numbers(text),
         addresses=extract_addresses(text),
         social_media=extract_social_profiles(text),
