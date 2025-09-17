@@ -207,6 +207,10 @@ for chunk in stream_chunks("https://example.com", size=1000):
 
 Copy `.env.example` to `.env` and fill in `OPENROUTER_API_KEY`, `OPENROUTER_MODEL`, and `OPENROUTER_BASE_URL` to enable LLM-powered features.
 
+## Development & Releases
+
+For automated version bumping and releases, see [RELEASE.md](RELEASE.md) for documentation on using the `release.sh` script.
+
 
 ## n8n integration
 
