@@ -7,6 +7,7 @@ from typing import Any, Callable
 from ..models import Document
 from .links import extract_links
 from .headings import extract_headings
+from .jobs import extract_job_postings
 
 Extractor = Callable[[Document], Any]
 
@@ -25,6 +26,7 @@ AVAILABLE_EXTRACTORS: dict[str, Extractor] = {
     "contacts": extract_contacts,
     "links": extract_links,
     "headings": extract_headings,
+    "job_postings": extract_job_postings,
 }
 
 __all__ = [
@@ -32,4 +34,5 @@ __all__ = [
     "extract_links",
     "extract_headings",
     "extract_contacts",
+    "extract_job_postings",
 ]
