@@ -37,6 +37,7 @@ Available extractors include:
 - ``contacts`` – emails, phone numbers, addresses and social profiles
 - ``links`` – all hyperlinks on the page
 - ``headings`` – text of headings (h1–h6)
+- ``job_postings`` – structured job advertisement details like position and location
 
 Use ``--json`` to emit machine-readable JSON instead of the default
 human-friendly format. The JSON keys mirror the selected extractors, with
