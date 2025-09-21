@@ -1,8 +1,15 @@
 #!/bin/bash
 
-# Script to bump version, commit, push, and tag for PyPI release
+# Script to bump version, commit, push, tag, and create GitHub Release for PyPI publishing
 # Usage: ./release.sh [BUMP_LEVEL]
 # BUMP_LEVEL: 0 = patch (x.x.X), 1 = minor (x.X.0), 2 = major (X.0.0)
+#
+# This script creates both a git tag AND a GitHub Release to trigger PyPI publishing.
+# The GitHub Actions workflow is triggered by GitHub Releases, not just git tags.
+#
+# Requirements:
+# - Either GitHub CLI (gh) installed and authenticated, OR
+# - GITHUB_TOKEN environment variable set with repo permissions
 
 set -e  # Exit on any error
 
@@ -50,13 +57,22 @@ else
     print_warning "pytest not found, skipping tests"
 fi
 
+# Check for dry-run flag
+DRY_RUN=false
+if [[ "$1" == "--dry-run" ]] || [[ "$1" == "-n" ]]; then
+    DRY_RUN=true
+    shift
+    print_info "🔍 Running in dry-run mode - no changes will be made"
+fi
+
 # Get bump level from argument or default to patch (0)
 BUMP_LEVEL=${1:-0}
 
 # Validate bump level
 if ! [[ "$BUMP_LEVEL" =~ ^[0-2]$ ]]; then
     print_error "Invalid bump level: $BUMP_LEVEL"
-    echo "Usage: $0 [BUMP_LEVEL]"
+    echo "Usage: $0 [--dry-run] [BUMP_LEVEL]"
+    echo "  --dry-run  Show what would be done without making changes"
     echo "  0 = patch (x.x.X)"
     echo "  1 = minor (x.X.0)" 
     echo "  2 = major (X.0.0)"
@@ -98,12 +114,21 @@ esac
 NEW_VERSION="$MAJOR.$MINOR.$PATCH"
 print_info "New version: $NEW_VERSION (${BUMP_TYPE} bump)"
 
-# Confirm with user
-read -p "Continue with version $NEW_VERSION? (y/N): " -n 1 -r
-echo
-if [[ ! $REPLY =~ ^[Yy]$ ]]; then
-    print_warning "Aborted by user"
-    exit 1
+# Confirm with user (skip in dry-run mode)
+if [ "$DRY_RUN" = false ]; then
+    read -p "Continue with version $NEW_VERSION? (y/N): " -n 1 -r
+    echo
+    if [[ ! $REPLY =~ ^[Yy]$ ]]; then
+        print_warning "Aborted by user"
+        exit 1
+    fi
+fi
+
+if [ "$DRY_RUN" = true ]; then
+    print_info "🔍 DRY RUN: Would update pyproject.toml and src/ainfo/__init__.py"
+    print_info "🔍 DRY RUN: Would commit, push, tag, and create GitHub Release"
+    print_info "🔍 DRY RUN: Skipping all actual changes"
+    exit 0
 fi
 
 # Update pyproject.toml
@@ -164,8 +189,70 @@ git tag -a "$TAG_NAME" -m "Release $TAG_NAME"
 print_info "Pushing tag to GitHub..."
 git push origin "$TAG_NAME"
 
+# Extract repository information from git remote
+REPO_URL=$(git remote get-url origin)
+if [[ $REPO_URL == git@github.com:* ]]; then
+    # SSH format: git@github.com:owner/repo.git
+    REPO_INFO=$(echo "$REPO_URL" | sed 's/git@github.com://' | sed 's/\.git$//')
+elif [[ $REPO_URL == https://github.com/* ]]; then
+    # HTTPS format: https://github.com/owner/repo.git
+    REPO_INFO=$(echo "$REPO_URL" | sed 's|https://github.com/||' | sed 's/\.git$//')
+else
+    print_error "Could not parse GitHub repository from: $REPO_URL"
+    exit 1
+fi
+
+# Create GitHub Release
+print_info "Creating GitHub Release $TAG_NAME..."
+if command -v gh > /dev/null 2>&1; then
+    # Use GitHub CLI if available
+    gh release create "$TAG_NAME" --title "$TAG_NAME" --notes "Release $TAG_NAME"
+    print_info "✅ GitHub Release created successfully with GitHub CLI"
+else
+    # Use curl with GitHub API if GitHub CLI is not available
+    print_warning "GitHub CLI not found, using curl to create release"
+    
+    # Check if GITHUB_TOKEN is set
+    if [ -z "$GITHUB_TOKEN" ]; then
+        print_error "GITHUB_TOKEN environment variable not set!"
+        print_error "Please set GITHUB_TOKEN or install GitHub CLI (gh) to create releases"
+        print_error "You can manually create a release at: https://github.com/$REPO_INFO/releases/new?tag=$TAG_NAME"
+        print_warning "Without a GitHub Release, PyPI publishing will not be triggered automatically"
+        exit 1
+    fi
+    
+    # Create release using GitHub API
+    RELEASE_DATA=$(cat <<EOF
+{
+  "tag_name": "$TAG_NAME",
+  "target_commitish": "main",
+  "name": "$TAG_NAME",
+  "body": "Release $TAG_NAME",
+  "draft": false,
+  "prerelease": false
+}
+EOF
+)
+    
+    RESPONSE=$(curl -s -X POST \
+        -H "Authorization: token $GITHUB_TOKEN" \
+        -H "Accept: application/vnd.github.v3+json" \
+        -d "$RELEASE_DATA" \
+        "https://api.github.com/repos/$REPO_INFO/releases")
+    
+    if echo "$RESPONSE" | grep -q '"id"'; then
+        print_info "✅ GitHub Release created successfully with API"
+    else
+        print_error "Failed to create GitHub Release:"
+        echo "$RESPONSE"
+        print_error "Please manually create a release at: https://github.com/$REPO_INFO/releases/new?tag=$TAG_NAME"
+        print_warning "Without a GitHub Release, PyPI publishing will not be triggered automatically"
+        exit 1
+    fi
+fi
+
 print_info "✅ Release process completed successfully!"
-print_info "📦 Version $NEW_VERSION has been tagged and pushed"
+print_info "📦 Version $NEW_VERSION has been tagged and GitHub Release created"
 print_info "🚀 GitHub Actions should now automatically publish to PyPI"
 
 # Show final git status
