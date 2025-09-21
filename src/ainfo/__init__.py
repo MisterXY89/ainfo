@@ -3,9 +3,11 @@
 from __future__ import annotations
 
 import asyncio
+import hashlib
 import json
 import logging
 from pathlib import Path
+from urllib.parse import urlparse
 
 import typer
 
@@ -232,6 +234,128 @@ def crawl(
         typer.echo(json.dumps(serialisable))
 
 
+async def async_extract_site(
+    url: str,
+    *,
+    depth: int = 0,
+    render_js: bool = False,
+    extract: list[str] | None = None,
+    include_text: bool = False,
+    use_llm: bool = False,
+    llm: LLMService | None = None,
+    dedupe: bool = True,
+) -> dict[str, dict[str, object]]:
+    """Crawl ``url`` up to ``depth`` levels and run extractors on each page.
+
+    Results are returned as a mapping of page URL to the extracted data.
+    Duplicate pages are skipped by comparing a SHA-256 hash of their HTML
+    content. Only pages on the same domain as ``url`` are processed.
+    """
+
+    extract_names = list(extract or ["contacts"])
+    method = "llm" if use_llm else "regex"
+    if use_llm and llm is None:
+        msg = "llm service required when use_llm=True"
+        raise ValueError(msg)
+
+    start_domain = urlparse(url).netloc
+    results: dict[str, dict[str, object]] = {}
+    seen_hashes: set[str] = set()
+
+    async for link, raw in crawl_urls(url, depth, render_js=render_js):
+        if urlparse(link).netloc != start_domain:
+            continue
+
+        if dedupe:
+            digest = hashlib.sha256(raw.encode("utf-8", errors="ignore")).hexdigest()
+            if digest in seen_hashes:
+                logger.debug("Skipping %s due to duplicate content hash", link)
+                continue
+            seen_hashes.add(digest)
+
+        document = parse_data(raw, url=link)
+        page_results: dict[str, object] = {}
+
+        if include_text:
+            page_results["text"] = extract_text(document)
+
+        for name in extract_names:
+            func = AVAILABLE_EXTRACTORS.get(name)
+            if func is None:
+                raise ValueError(f"Unknown extractor: {name}")
+            if name == "contacts":
+                page_results[name] = func(document, method=method, llm=llm)
+            else:
+                page_results[name] = func(document)
+
+        results[link] = page_results
+
+    return results
+
+
+def extract_site(
+    url: str,
+    *,
+    depth: int = 0,
+    render_js: bool = False,
+    extract: list[str] | None = None,
+    include_text: bool = False,
+    use_llm: bool = False,
+    llm: LLMService | None = None,
+    dedupe: bool = True,
+) -> dict[str, dict[str, object]] | asyncio.Task[dict[str, dict[str, object]]]:
+    """Synchronously run :func:`async_extract_site` when no event loop exists.
+
+    When called from within a running event loop a task is scheduled instead.
+    """
+
+    try:
+        loop = asyncio.get_running_loop()
+    except RuntimeError:
+        if use_llm and llm is None:
+            with LLMService() as managed_llm:
+                return asyncio.run(
+                    async_extract_site(
+                        url,
+                        depth=depth,
+                        render_js=render_js,
+                        extract=extract,
+                        include_text=include_text,
+                        use_llm=True,
+                        llm=managed_llm,
+                        dedupe=dedupe,
+                    )
+                )
+        return asyncio.run(
+            async_extract_site(
+                url,
+                depth=depth,
+                render_js=render_js,
+                extract=extract,
+                include_text=include_text,
+                use_llm=use_llm,
+                llm=llm,
+                dedupe=dedupe,
+            )
+        )
+    else:
+        if use_llm and llm is None:
+            msg = "llm must be provided when use_llm=True inside an event loop"
+            raise RuntimeError(msg)
+        return loop.create_task(
+            async_extract_site(
+                url,
+                depth=depth,
+                render_js=render_js,
+                extract=extract,
+                include_text=include_text,
+                use_llm=use_llm,
+                llm=llm,
+                dedupe=dedupe,
+            )
+        )
+
+
 def main() -> None:
     app()
 
@@ -247,6 +371,8 @@ __all__ = [
     "extract_information",
     "extract_text",
     "extract_custom",
+    "extract_site",
+    "async_extract_site",
     "output_results",
     "to_json",
     "json_schema",

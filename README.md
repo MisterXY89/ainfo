@@ -123,6 +123,19 @@ print(contacts.emails, extra["prices"])
 Serialise results with ``to_json`` or inspect the JSON schema with
 ``json_schema(ContactDetails)``.
 
+To crawl multiple pages of the same site and aggregate the results in code,
+use ``extract_site``. Pages are fetched breadth-first, deduplicated using a
+content hash and restricted to the starting domain by default:
+
+```python
+from ainfo import extract_site
+
+pages = extract_site("https://example.com", depth=2, include_text=True)
+
+for url, data in pages.items():
+    print(url, data["contacts"].emails)
+```
+
 #### Custom extractors
 
 Define your own extractor by writing a function that accepts a
