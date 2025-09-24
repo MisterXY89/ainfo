@@ -11,7 +11,7 @@ from urllib.parse import urlparse
 
 import typer
 
-__version__ = "1.2.0"
+__version__ = "1.3.0"
 
 from .chunking import chunk_text, stream_chunks
 from .crawler import crawl as crawl_urls
