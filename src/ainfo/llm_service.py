@@ -55,6 +55,10 @@ class LLMService:
             self.config.summary_language or DEFAULT_SUMMARY_LANGUAGE
         )
         self.summary_language = configured_language.strip() or DEFAULT_SUMMARY_LANGUAGE
+        configured_prompt = self.config.summary_prompt
+        if configured_prompt is not None and not configured_prompt.strip():
+            configured_prompt = None
+        self.summary_prompt = configured_prompt
         if not self.config.api_key:
             msg = "OPENROUTER_API_KEY is required to use the LLM service"
             raise RuntimeError(msg)
@@ -102,12 +106,29 @@ class LLMService:
         return self._chat([{"role": "user", "content": prompt}], model=model)
 
     def summarize(
-        self, text: str, model: str | None = None, language: str | None = None
+        self,
+        text: str,
+        model: str | None = None,
+        language: str | None = None,
+        prompt: str | None = None,
     ) -> str:
-        """Return a cold-outreach-ready summary of ``text``."""
+        """Return a cold-outreach-ready summary of ``text``.
 
-        prompt = build_summary_prompt(language or self.summary_language)
-        return self.extract(text, prompt, model=model)
+        When ``prompt`` is supplied it takes precedence over any configured
+        defaults or language-specific templates.
+        """
+
+        chosen_prompt = prompt
+        if chosen_prompt is not None and not chosen_prompt.strip():
+            chosen_prompt = None
+        if chosen_prompt is None:
+            configured_prompt = self.summary_prompt
+            if configured_prompt is not None and not configured_prompt.strip():
+                configured_prompt = None
+            chosen_prompt = configured_prompt
+        if chosen_prompt is None:
+            chosen_prompt = build_summary_prompt(language or self.summary_language)
+        return self.extract(text, chosen_prompt, model=model)
 
 
 class AsyncLLMService:
@@ -119,6 +140,10 @@ class AsyncLLMService:
             self.config.summary_language or DEFAULT_SUMMARY_LANGUAGE
         )
         self.summary_language = configured_language.strip() or DEFAULT_SUMMARY_LANGUAGE
+        configured_prompt = self.config.summary_prompt
+        if configured_prompt is not None and not configured_prompt.strip():
+            configured_prompt = None
+        self.summary_prompt = configured_prompt
         if not self.config.api_key:
             msg = "OPENROUTER_API_KEY is required to use the LLM service"
             raise RuntimeError(msg)
@@ -141,10 +166,23 @@ class AsyncLLMService:
         return await self._chat([{"role": "user", "content": prompt}], model=model)
 
     async def summarize(
-        self, text: str, model: str | None = None, language: str | None = None
+        self,
+        text: str,
+        model: str | None = None,
+        language: str | None = None,
+        prompt: str | None = None,
     ) -> str:
-        prompt = build_summary_prompt(language or self.summary_language)
-        return await self.extract(text, prompt, model=model)
+        chosen_prompt = prompt
+        if chosen_prompt is not None and not chosen_prompt.strip():
+            chosen_prompt = None
+        if chosen_prompt is None:
+            configured_prompt = self.summary_prompt
+            if configured_prompt is not None and not configured_prompt.strip():
+                configured_prompt = None
+            chosen_prompt = configured_prompt
+        if chosen_prompt is None:
+            chosen_prompt = build_summary_prompt(language or self.summary_language)
+        return await self.extract(text, chosen_prompt, model=model)
 
     async def aclose(self) -> None:
         await self._client.aclose()

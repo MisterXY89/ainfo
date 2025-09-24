@@ -59,6 +59,17 @@ def run(
         help="Language used for LLM summaries",
         envvar="AINFO_SUMMARY_LANGUAGE",
     ),
+    summary_prompt: str | None = typer.Option(
+        None,
+        "--summary-prompt",
+        help="Custom instruction supplied to the LLM when summarising",
+        envvar="AINFO_SUMMARY_PROMPT",
+    ),
+    summary_prompt_file: Path | None = typer.Option(
+        None,
+        "--summary-prompt-file",
+        help="Read the summary prompt from PATH",
+    ),
     extract: list[str] = typer.Option(
         [], "--extract", "-e", help="Additional extractors to run",
     ),
@@ -75,6 +86,20 @@ def run(
     ),
 ) -> None:
     """Fetch ``url`` and display extracted text and optional information."""
+
+    if summary_prompt is not None and summary_prompt_file is not None:
+        raise typer.BadParameter(
+            "Use either --summary-prompt or --summary-prompt-file, not both"
+        )
+
+    custom_summary_prompt = summary_prompt
+    if summary_prompt_file is not None:
+        try:
+            custom_summary_prompt = summary_prompt_file.read_text(encoding="utf-8")
+        except OSError as exc:
+            raise typer.BadParameter(
+                f"Unable to read summary prompt file: {exc}"
+            ) from exc
 
     raw = fetch_data(url, render_js=render_js)
     document = parse_data(raw, url=url)
@@ -102,7 +127,7 @@ def run(
                     results[name] = func(document)
             if summarize and text is not None:
                 results["summary"] = llm.summarize(
-                    text, language=summary_language
+                    text, language=summary_language, prompt=custom_summary_prompt
                 )
     else:
         for name in extract:

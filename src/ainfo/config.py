@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import os
 from dataclasses import dataclass
+from typing import Optional
 
 
 @dataclass
@@ -14,6 +15,7 @@ class LLMConfig:
     model: str = os.getenv("OPENROUTER_MODEL", "google/gemini-2.5-flash")
     base_url: str = os.getenv("OPENROUTER_BASE_URL", "https://openrouter.ai/api/v1")
     summary_language: str = os.getenv("AINFO_SUMMARY_LANGUAGE", "German")
+    summary_prompt: Optional[str] = os.getenv("AINFO_SUMMARY_PROMPT")
 
 
 __all__ = ["LLMConfig"]

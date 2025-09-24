@@ -70,7 +70,11 @@ ainfo run https://example.com --use-llm --summarize
 
 Summaries are generated in German by default. Override the language with
 `--summary-language <LANG>` on the CLI or by setting the `AINFO_SUMMARY_LANGUAGE`
-environment variable.
+environment variable. Provide your own instructions for the LLM with
+`--summary-prompt "..."` or point to a file containing the prompt via
+`--summary-prompt-file path/to/prompt.txt` (useful for longer templates). The
+`AINFO_SUMMARY_PROMPT` environment variable supplies a default prompt when no
+CLI override is given.
 
 If the target site relies on client-side JavaScript, enable rendering with a
 headless browser:
@@ -219,7 +223,7 @@ for chunk in stream_chunks("https://example.com", size=1000):
 
 ### Environment configuration
 
-Copy `.env.example` to `.env` and fill in `OPENROUTER_API_KEY`, `OPENROUTER_MODEL`, and `OPENROUTER_BASE_URL` to enable LLM-powered features.
+Copy `.env.example` to `.env` and fill in `OPENROUTER_API_KEY`, `OPENROUTER_MODEL`, and `OPENROUTER_BASE_URL` to enable LLM-powered features. Optional overrides such as `AINFO_SUMMARY_LANGUAGE` and `AINFO_SUMMARY_PROMPT` customise the default summary behaviour.
 
 ## Development & Releases
 
@@ -232,19 +236,40 @@ A minimal FastAPI wrapper and accompanying Dockerfile live in the `integration/`
 
 ```bash
 docker build -f integration/Dockerfile -t ainfo-api .
-docker run -p 8000:8000 -e OPENROUTER_API_KEY=your_key -e AINFO_API_KEY=choose_a_secret ainfo-api
+docker run -p 8877:8877 -e OPENROUTER_API_KEY=your_key -e AINFO_API_KEY=choose_a_secret ainfo-api
 # or use an env file
-docker run -p 8000:8000 --env-file .env ainfo-api
+docker run -p 8877:8877 --env-file .env ainfo-api
 ```
 
-The server exposes a `/run` endpoint that executes:
+`integration/api.py` now calls the Python APIs directly rather than shelling
+out to the CLI. Two routes are available:
+
+- `GET /run` – legacy behaviour for quick single-page lookups (still renders
+  with JavaScript, uses the contacts extractor and returns a summary)
+- `POST /run` – fully configurable crawling endpoint that accepts a JSON body
+
+Example request using the new `POST /run` endpoint:
 
 ```bash
-ainfo run <url> --use-llm --summarize --render-js --extract contacts --no-text --json
+curl -X POST \
+  -H 'X-API-Key: your_api_key' \
+  -H 'Content-Type: application/json' \
+  -d '{
+        "url": "https://example.com",
+        "depth": 1,
+        "use_llm": true,
+        "summarize": true,
+        "summary_language": "English",
+        "summary_prompt": "Summarise the company positioning and recent news.",
+        "extract": ["contacts", "links"],
+        "include_text": false
+      }' \
+  http://localhost:8877/run
 ```
 
-Pass an optional `summary_language` query parameter to control the summary
-language (default: German).
+Because the prompt is part of the JSON payload it can be as long as needed
+without worrying about query-string limits. Responses contain one entry per
+visited page keyed by URL.
 
 `integration/api.py` uses [`python-dotenv`](https://pypi.org/project/python-dotenv/) to load a `.env` file, so sensitive values
 such as `OPENROUTER_API_KEY` can be supplied via environment variables. Protect the endpoint by setting `AINFO_API_KEY` and
