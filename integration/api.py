@@ -35,19 +35,19 @@ class RunRequest(BaseModel):
 
     url: HttpUrl = Field(..., description="URL to process")
     depth: int = Field(
-        0,
+        1,
         ge=0,
         description="Crawl depth when following links from the starting URL",
     )
     render_js: bool = Field(
-        False,
+        True,
         description="Render pages with a headless browser before extraction",
     )
     use_llm: bool = Field(
-        False, description="Use LLM-backed extractors where available"
+        True, description="Use LLM-backed extractors where available"
     )
     extract: List[str] = Field(
-        default_factory=lambda: ["contacts"],
+        default_factory=lambda: ["contacts", "links"],
         description="Names of extractors to run for each page",
     )
     include_text: bool = Field(
