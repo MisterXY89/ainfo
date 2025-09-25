@@ -152,6 +152,7 @@ def run_get(
     summary_language: str = Query(
         DEFAULT_SUMMARY_LANGUAGE, description="Language for the LLM summary"
     ),
+    depth: int = Query(1, ge=0, description="Crawl depth when following links"),
     _: str = Security(require_api_key),
 ):
     """Maintain the legacy behaviour of summarising a single page."""
@@ -164,7 +165,7 @@ def run_get(
         render_js=True,
         use_llm=True,
         extract=["contacts"],
-        depth=0,
+        depth=depth,
     )
     results = _execute_request(request)
     key = str(url)
